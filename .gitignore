@@ -1,0 +1,39 @@
+# Node.js
+node_modules/
+
+# TypeScript build output
+dist/
+
+# Prisma generated files
+.prisma/
+
+# Generated Prisma client
+generated/
+
+# Environment files
+.env
+
+# VSCode settings
+.vscode/
+
+# Log files
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Fastify logs (if you are using Fastify logging)
+*.log
+
+# Package lock file for specific versions (optional)
+package-lock.json
+
+# TypeScript compiled files (if you don't want them in Git)
+*.tsbuildinfo
+
+# Other IDEs/editors
+.idea/
+
+# Coverage reports (if using testing frameworks like Jest)
+coverage/

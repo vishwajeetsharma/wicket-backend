@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  passwordHash   String?
+  passwordSalt   String?
+  sessionVersion Int       @default(1)
+  is2FAEnabled   Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  profile      Profile?
+  emails       Email[]
+  phones       Phone[]
+  passkeys     Passkey[]
+  hardwareKeys HardwareKey[]
+  totp         Totp?
+  sessions     Session[]
+  backupCodes  BackupCode[]
+
+  googleAccount    GoogleAccount?
+  githubAccount    GithubAccount?
+  microsoftAccount MicrosoftAccount?
+}
+
+model Profile {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  firstName String?
+  lastName  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Emails (primary + recovery)
+model Email {
+  id        String    @id @default(uuid())
+  userId    String
+  email     String
+  type      EmailType @default(recovery)
+  verified  Boolean   @default(false)
+  addedAt   DateTime  @default(now())
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum EmailType {
+  primary
+  recovery
+}
+
+/// Phones (primary + recovery)
+model Phone {
+  id        String    @id @default(uuid())
+  userId    String
+  phone     String    @unique
+  type      PhoneType @default(recovery)
+  verified  Boolean   @default(false)
+  addedAt   DateTime  @default(now())
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum PhoneType {
+  primary
+  recovery
+}
+
+model Passkey {
+  id           String    @id @default(uuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  signCount    BigInt    @default(0)
+  platform     String? // e.g. "macOS", "iOS", "Windows", "Android"
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  deletedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HardwareKey {
+  id           String    @id @default(uuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  signCount    BigInt    @default(0)
+  deviceType   String? // e.g. "YubiKey 5C NFC"
+  transports   String[] // e.g., ["usb", "nfc", "ble"]
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  deletedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// TOTP (single setup per user)
+model Totp {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  secret    String
+  verified  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Sessions (refresh tokens + device info)
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  refreshToken String    @unique
+  userAgent    String?
+  ipAddress    String? // Store as text, can normalize if needed
+  deviceName   String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  deletedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Google SSO
+model GoogleAccount {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  googleId  String    @unique
+  email     String?
+  name      String?
+  picture   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// GitHub SSO
+model GithubAccount {
+  id         String    @id @default(uuid())
+  userId     String    @unique
+  githubId   String    @unique
+  username   String?
+  email      String?
+  avatarUrl  String?
+  profileUrl String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Microsoft SSO
+model MicrosoftAccount {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  microsoftId String    @unique
+  email       String?
+  name        String?
+  picture     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String // store hash of the backup code, not raw code
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
